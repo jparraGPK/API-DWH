@@ -1,0 +1,36 @@
+name: Build and Deploy to Azure Container App
+
+on:
+  push:
+    branches:
+      - main  # O la rama en la que quieras desplegar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t dwhapi.azurecr.io/api-dwh:latest .
+
+      - name: Push Docker image to ACR
+        run: |
+          docker push dwhapi.azurecr.io/api-dwh:latest
+
+      - name: Deploy to Azure Container App
+        run: |
+          az containerapp update \
+            --name appdwhapi \
+            --resource-group RG-ANALITICA \
+            --image dwhapi.azurecr.io/api-dwh:latest
